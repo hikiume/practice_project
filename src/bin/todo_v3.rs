@@ -16,10 +16,9 @@ fn main() {
         });
     }
 
-    for task in &tasks{
-        println!("name : {} completed : {}",task.name,task.compoleted)
+    for task in &tasks {
+        println!("name : {} completed : {}", task.name, task.compoleted)
     }
-    
 }
 
 struct Task {
