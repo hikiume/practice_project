@@ -6,21 +6,23 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let content = load_file("tasks.json").unwrap_or_else(|_|"[]".to_string());
+    let content = load_file("tasks.json").unwrap_or_else(|_| "[]".to_string());
     let mut tasks: Vec<Task> = serde_json::from_str(&content).unwrap_or_else(|_| Vec::new());
 
     loop {
         let mut input = String::new();
         std::io::stdin().read_line(&mut input)?;
 
-        if handle_command(&input, &mut tasks) == LoopStatus::Exit {
-            break;
+        match parse_command(&input) {
+            Command::Quit => break,
+            Command::AllComplete => tasks.iter_mut().for_each(|v| v.completed = true),
+            Command::AddTask(name) => {
+                tasks.push(Task {
+                    name,
+                    completed: (false),
+                });
+            }
         }
-
-        tasks.push(Task {
-            name: (input.trim().to_string()),
-            completed: (false),
-        });
     }
 
     tasks
@@ -41,26 +43,23 @@ struct Task {
     completed: bool,
 }
 
-#[derive(PartialEq)]
-enum LoopStatus {
-    Continue,
-    Exit,
-}
-
-fn handle_command(input: &String, tasks: &mut Vec<Task>) -> LoopStatus {
-    match input.trim() {
-        "quit" => LoopStatus::Exit,
-        "all complete" => {
-            tasks.iter_mut().for_each(|v| v.completed = true);
-            LoopStatus::Exit
-        }
-        _ => LoopStatus::Continue,
-    }
-}
-
-fn load_file(file_name:&str) -> Result<String, Box<dyn std::error::Error>> {
+fn load_file(file_name: &str) -> Result<String, Box<dyn std::error::Error>> {
     let mut content = String::new();
     let mut file = File::open(file_name)?;
     file.read_to_string(&mut content)?;
     Ok(content)
+}
+
+enum Command {
+    AddTask(String),
+    AllComplete,
+    Quit,
+}
+
+fn parse_command(input: &str) -> Command {
+    match input.trim() {
+        "quit" => Command::Quit,
+        "all complete" => Command::AllComplete,
+        name => Command::AddTask(name.to_string()),
+    }
 }
