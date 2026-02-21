@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{Read, Write, stdin},
+    io::{Read, Write},
 };
 
 use serde::{Deserialize, Serialize};
@@ -16,13 +16,8 @@ fn main() {
         let mut input = String::new();
         std::io::stdin().read_line(&mut input).expect("エラー");
 
-        match input.trim() {
-            "quit" => break,
-            "all complete" => {
-                tasks.iter_mut().for_each(|v| v.completed = true);
-                break;
-            },
-            _ =>(),
+        if handle_command(&input, &mut tasks) == LoopStatus::Exit {
+            break;
         }
 
         tasks.push(Task {
@@ -45,4 +40,21 @@ fn main() {
 struct Task {
     name: String,
     completed: bool,
+}
+
+#[derive(PartialEq)]
+enum LoopStatus {
+    Continue,
+    Exit,
+}
+
+fn handle_command(input: &String, tasks: &mut Vec<Task>) -> LoopStatus {
+    match input.trim() {
+        "quit" => LoopStatus::Exit,
+        "all complete" => {
+            tasks.iter_mut().for_each(|v| v.completed = true);
+            return LoopStatus::Exit;
+        }
+        _ => LoopStatus::Continue,
+    }
 }
