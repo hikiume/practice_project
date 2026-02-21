@@ -5,16 +5,13 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-fn main() {
-    let mut content = String::new();
-    let mut file = File::open("tasks.json").expect("エラー");
-    file.read_to_string(&mut content).expect("エラー");
-
-    let mut tasks: Vec<Task> = serde_json::from_str(&content).expect("エラー");
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let content = load_file("tasks.json").unwrap_or_else(|_|"[]".to_string());
+    let mut tasks: Vec<Task> = serde_json::from_str(&content).unwrap_or_else(|_| Vec::new());
 
     loop {
         let mut input = String::new();
-        std::io::stdin().read_line(&mut input).expect("エラー");
+        std::io::stdin().read_line(&mut input)?;
 
         if handle_command(&input, &mut tasks) == LoopStatus::Exit {
             break;
@@ -30,10 +27,12 @@ fn main() {
         .iter()
         .for_each(|v| println!("v.name :{} v.conpleted :{}", v.name, v.completed));
 
-    let json = serde_json::to_string_pretty(&tasks).expect("エラー");
+    let json = serde_json::to_string_pretty(&tasks)?;
 
-    let mut write_file = File::create("tasks.json").expect("エラー");
-    write_file.write_all(json.as_bytes()).expect("エラー");
+    let mut write_file = File::create("tasks.json")?;
+    write_file.write_all(json.as_bytes())?;
+
+    Ok(())
 }
 
 #[derive(Serialize, Deserialize)]
@@ -53,8 +52,15 @@ fn handle_command(input: &String, tasks: &mut Vec<Task>) -> LoopStatus {
         "quit" => LoopStatus::Exit,
         "all complete" => {
             tasks.iter_mut().for_each(|v| v.completed = true);
-            return LoopStatus::Exit;
+            LoopStatus::Exit
         }
         _ => LoopStatus::Continue,
     }
+}
+
+fn load_file(file_name:&str) -> Result<String, Box<dyn std::error::Error>> {
+    let mut content = String::new();
+    let mut file = File::open(file_name)?;
+    file.read_to_string(&mut content)?;
+    Ok(content)
 }
