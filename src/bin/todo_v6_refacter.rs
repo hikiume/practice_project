@@ -16,6 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         match parse_command(&input) {
             Command::Quit => break,
             Command::AllComplete => tasks.iter_mut().for_each(|v| v.completed = true),
+            Command::Continue => (),
             Command::AddTask(name) => {
                 tasks.push(Task {
                     name,
@@ -54,12 +55,14 @@ enum Command {
     AddTask(String),
     AllComplete,
     Quit,
+    Continue,
 }
 
 fn parse_command(input: &str) -> Command {
     match input.trim() {
         "quit" => Command::Quit,
         "all complete" => Command::AllComplete,
+        "" => Command::Continue,
         name => Command::AddTask(name.to_string()),
     }
 }
