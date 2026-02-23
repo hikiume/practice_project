@@ -1,8 +1,4 @@
-use std::{
-    fs::File,
-    io::{Read, Write},
-    path::{self, Path},
-};
+use std::{fs::File, path::Path};
 
 use serde::{Deserialize, Serialize};
 
@@ -25,18 +21,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut tasks: Vec<Task> = load_file(FILE_PATH)?;
 
     loop {
+        println!(">");
+
         let mut input = String::new();
         std::io::stdin().read_line(&mut input)?;
 
         match parse_command(&input) {
             Command::Quit => break,
-            Command::AllComplete => tasks.iter_mut().for_each(|v| v.completed = true),
+            Command::AllComplete => {
+                tasks.iter_mut().for_each(|v| v.completed = true);
+                save_tasks(FILE_PATH, &tasks)?;
+                println!("全てのタスクを完了しました");
+            }
             Command::Continue => (),
             Command::AddTask(name) => {
                 tasks.push(Task {
                     name,
                     completed: (false),
                 });
+                save_tasks(FILE_PATH, &tasks)?
             }
         }
     }
@@ -51,13 +54,9 @@ fn load_file<P: AsRef<Path>>(path: P) -> Result<Vec<Task>, Box<dyn std::error::E
     if !path.as_ref().exists() {
         return Ok(Vec::new());
     }
-    let mut content = String::new();
-    let mut file = File::open(path.as_ref())?;
-    file.read_to_string(&mut content)?;
-    let tasks = serde_json::from_str(&content).unwrap_or_else(|_| {
-        println!("ファイルが読み込めないので、新しいリストを作成します。");
-        Vec::new()
-    });
+
+    let file = File::open(path)?;
+    let tasks = serde_json::from_reader(file)?;
 
     Ok(tasks)
 }
@@ -72,9 +71,8 @@ fn parse_command(input: &str) -> Command {
 }
 
 fn save_tasks<P: AsRef<Path>>(path: P, tasks: &[Task]) -> std::io::Result<()> {
-    let json = serde_json::to_string_pretty(&tasks).expect("JSONの生成に失敗しました");
-    let mut write_file = File::create(path)?;
-    write_file.write_all(json.as_bytes())?;
+    let file = File::create(path)?;
+    serde_json::to_writer_pretty(file, &tasks).expect("JSONの生成に失敗しました");
 
     Ok(())
 }
