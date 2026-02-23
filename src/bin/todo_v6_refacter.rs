@@ -1,4 +1,4 @@
-use std::{fs::File, path::Path};
+use std::{fs::File, path::Path, usize};
 
 use serde::{Deserialize, Serialize};
 
@@ -9,10 +9,12 @@ enum Command {
     AllComplete,
     Quit,
     Continue,
+    DeleteTask(usize),
 }
 
 #[derive(Serialize, Deserialize)]
 struct Task {
+    id: usize,
     name: String,
     completed: bool,
 }
@@ -35,11 +37,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             Command::Continue => (),
             Command::AddTask(name) => {
+                let new_id = tasks.iter().map(|v| v.id).max().unwrap_or(0) + 1;
                 tasks.push(Task {
+                    id: (new_id),
                     name,
                     completed: (false),
                 });
                 save_tasks(FILE_PATH, &tasks)?
+            }
+            Command::DeleteTask(id) => {
+                let original_len = tasks.len();
+                tasks.retain(|v| v.id != id);
+
+                if tasks.len() < original_len {
+                    save_tasks(FILE_PATH, &tasks)?;
+                    println!("ID {} は削除しました", id)
+                } else {
+                    println!("ID {} は見つかりませんでした", id)
+                }
             }
         }
     }
@@ -62,11 +77,20 @@ fn load_file<P: AsRef<Path>>(path: P) -> Result<Vec<Task>, Box<dyn std::error::E
 }
 
 fn parse_command(input: &str) -> Command {
-    match input.trim() {
-        "quit" => Command::Quit,
-        "all complete" => Command::AllComplete,
-        "" => Command::Continue,
-        name => Command::AddTask(name.to_string()),
+    let parts: Vec<&str> = input.trim().split_whitespace().collect();
+
+    match parts.as_slice() {
+        ["quit"] => Command::Quit,
+        ["all complete"] => Command::AllComplete,
+        [] => Command::Continue,
+        ["delete", id_str] => {
+            if let Ok(id) = id_str.parse::<usize>() {
+                Command::DeleteTask(id)
+            } else {
+                Command::Continue
+            }
+        }
+        _ => Command::AddTask(input.trim().to_string()),
     }
 }
 
